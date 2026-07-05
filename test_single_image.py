@@ -7,6 +7,12 @@ Supports OpenAI and Google Gemini APIs
 import urllib.request
 import base64
 from pathlib import Path
+from config import (
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+    GOOGLE_API_KEY,
+    GOOGLE_MODEL,
+)
 
 # ============================================================================
 # CONFIG - CHOOSE YOUR API
@@ -14,15 +20,7 @@ from pathlib import Path
 
 MODEL_PROVIDER = "google"  # Options: "openai" or "google"
 
-# OpenAI Config
-OPENAI_API_KEY = 
-OPENAI_MODEL = "gpt-image-1"
-
-# Google Config
-GOOGLE_API_KEY = 
-GOOGLE_MODEL = "gemini-3.1-flash-lite-image"
-
-# Common Config
+# Common Config (API keys imported from config.py)
 IMAGE_SIZE = "1024x1024"
 OUTPUT_DIR = "gemini_output"
 

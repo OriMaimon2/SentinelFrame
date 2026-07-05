@@ -1,0 +1,79 @@
+[
+  {
+    "file": "sample_images/hand_in_pocket/sample_001.png",
+    "label": "hand_in_pocket",
+    "prompt_template": {
+      "action": "Customer standing in aisle with right hand clearly inside pants pocket",
+      "setting": "Near product shelves, realistic shopping posture",
+      "framing": "Full body visible from realistic overhead angle"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer standing in aisle with right hand clearly inside pants pocket. Setting: Near product shelves, realistic shopping posture. Framing: Full body visible from realistic overhead angle.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/hand_in_bag/sample_001.png",
+    "label": "hand_in_bag",
+    "prompt_template": {
+      "action": "Customer reaching with right hand deep inside open shopping bag",
+      "setting": "Holding shopping bag while standing near shelves",
+      "framing": "Hand and bag clearly visible from overhead angle"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer reaching with right hand deep inside open shopping bag. Setting: Holding shopping bag while standing near shelves. Framing: Hand and bag clearly visible from overhead angle.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/hand_under_clothing/sample_001.png",
+    "label": "hand_under_clothing",
+    "prompt_template": {
+      "action": "Customer with right hand inside or under jacket/hoodie",
+      "setting": "Wearing outerwear, standing near shelves",
+      "framing": "Partially hidden hand under clothing visible from side angle"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer with right hand inside or under jacket/hoodie. Setting: Wearing outerwear, standing near shelves. Framing: Partially hidden hand under clothing visible from side angle.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/object_in_hand/sample_001.png",
+    "label": "object_in_hand",
+    "prompt_template": {
+      "action": "Customer clearly holding a product or item in hand",
+      "setting": "Standing near shelves, product clearly visible",
+      "framing": "Object and hand prominently visible in frame"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer clearly holding a product or item in hand. Setting: Standing near shelves, product clearly visible. Framing: Object and hand prominently visible in frame.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/interacting_with_shelf/sample_001.png",
+    "label": "interacting_with_shelf",
+    "prompt_template": {
+      "action": "Customer reaching toward shelf, picking up or examining products",
+      "setting": "Hand touching shelf items, engaged with merchandise",
+      "framing": "Shelf and reaching motion clearly visible"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer reaching toward shelf, picking up or examining products. Setting: Hand touching shelf items, engaged with merchandise. Framing: Shelf and reaching motion clearly visible.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/hand_occluded_generic/sample_001.png",
+    "label": "hand_occluded_generic",
+    "prompt_template": {
+      "action": "Customer with hand hidden behind body or by other objects",
+      "setting": "Hand blocked by own torso or shelf obstruction",
+      "framing": "One hand not visible due to normal occlusion"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer with hand hidden behind body or by other objects. Setting: Hand blocked by own torso or shelf obstruction. Framing: One hand not visible due to normal occlusion.",
+    "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+    "file": "sample_images/both_hands_not_visible/sample_001.png",
+    "label": "both_hands_not_visible",
+    "prompt_template": {
+      "action": "Customer standing with neither hand visible in frame",
+      "setting": "Both hands either behind back or outside frame",
+      "framing": "Customer visible but no hands showing"
+    },
+    "full_prompt": "Frame from overhead supermarket security camera. Wide-angle CCTV view. Grainy low-resolution surveillance footage. Realistic supermarket with stocked shelves and products. Natural lighting from overhead fluorescent lights. Realistic customer behavior, casual shopping atmosphere. Customer action: Customer standing with neither hand visible in frame. Setting: Both hands either behind back or outside frame. Framing: Customer visible but no hands showing.",
+    "model": "gemini-3.1-flash-lite-image"
+  }
+]
