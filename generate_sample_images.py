@@ -41,9 +41,10 @@ PROMPT_TEMPLATE = {
         "A realistic wide shot frame from a standard ceiling-mounted supermarket security camera, "
         "looking down at a natural steep angle over a shopping aisle. "
         "Bright and authentic supermarket environment with fully stocked shelves, colorful products, "
-        "and clear overhead fluorescent lighting. An ordinary customer in casual clothes is captured from "
+        "and clear overhead fluorescent lighting. Crucially, the aisle is completely empty of any other people, "
+        "containing only a solitary single ordinary customer in casual clothes, captured from "
         "a realistic, natural distance down the aisle, ensuring a true surveillance perspective with "
-        "completely unposed, candid, and organic framing."
+        "completely unposed, candid, and organic framing. Only one single isolated human is visible."
     ),
 "prompts": {
         "hand_in_pocket": {
