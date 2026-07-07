@@ -1,3 +1,4 @@
+Data_Images.tar.gz
 # API Keys & Secrets
 config.py
 .env
@@ -38,13 +39,15 @@ wheels/
 .DS_Store
 
 # Generated Data
-# output/
-# sample_images/
-# gemini_output/
-# test_output/
-# *.png
-#*.jpg
-#*.jpeg
+output/
+sample_images/
+gemini_output/
+test_output/
+*.png
+*.jpg
+*.jpeg
 #metadata.json
 #sample_metadata.json
 Temp_Images
+Data_Images
+Data_Images.tar.gz

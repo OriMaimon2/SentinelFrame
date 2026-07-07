@@ -8,6 +8,8 @@ import json
 import base64
 import logging
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from google import genai
@@ -39,21 +41,26 @@ LABELS = [
 # Labels with a count of 0 (or omitted here) are skipped entirely.
 
 IMAGES_PER_LABEL = {
-    "hand_in_pocket": 2,
-    "hand_in_bag": 1,
-    "hand_under_clothing": 1,
-    "object_in_hand": 1,
-    "interacting_with_shelf": 1,
-    "hand_occluded_generic": 1,
-    "both_hands_not_visible": 1,
-    "no_visible_hand_interaction": 1,
+    "hand_in_pocket": 20,
+    "hand_in_bag": 20,
+    "hand_under_clothing": 20,
+    "object_in_hand": 20,
+    "interacting_with_shelf": 20,
+    "hand_occluded_generic": 20,
+    "both_hands_not_visible": 20,
+    "no_visible_hand_interaction": 20,
 }
 
 # Set to an int for a fully reproducible run (same seed -> same sequence of
 # variable choices across every generated image). Leave None to use a fresh
 # seed each run — the actual seed used is always logged so any run can be
 # reproduced later by pinning RANDOM_SEED to that value.
-RANDOM_SEED = None
+RANDOM_SEED = 42
+
+# Number of images generated concurrently (each is a slow, network-bound API
+# call, so threads — not processes — are the right tool here). Tune this down
+# if you hit API rate limits, or up if the API comfortably handles more.
+MAX_WORKERS = 2
 
 # ============================================================================
 # VARIABLE POOLS (RANDOMIZED PROMPT TOKENS)
@@ -383,6 +390,31 @@ def next_sample_index(label_dir: Path) -> int:
     return max(indices, default=0) + 1
 
 
+PROGRESS_FILENAME = "generation_progress.json"
+
+
+def load_progress(output_path: Path, seed: int, targets: dict) -> dict | None:
+    """Load a saved run-plan checkpoint if it matches the current seed and label/count plan exactly."""
+    progress_path = output_path / PROGRESS_FILENAME
+    if not progress_path.exists():
+        return None
+    try:
+        with open(progress_path) as f:
+            progress = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    if progress.get("seed") != seed or progress.get("images_per_label") != targets:
+        return None
+    return progress
+
+
+def save_progress(output_path: Path, progress: dict) -> None:
+    """Persist the current run-plan checkpoint (seed, plan, per-label start index, completed rounds)."""
+    progress_path = output_path / PROGRESS_FILENAME
+    with open(progress_path, "w") as f:
+        json.dump(progress, f, indent=2)
+
+
 def generate_image_with_retry(
     client: genai.Client,
     prompt: str,
@@ -415,28 +447,50 @@ def generate_image_with_retry(
 
 def generate_samples() -> None:
     """Generate images for each configured label according to IMAGES_PER_LABEL."""
-    logger = setup_logger(OUTPUT_DIR)
-
     seed = RANDOM_SEED if RANDOM_SEED is not None else random.randrange(2**32)
-    random.seed(seed)
-    logger.info(f"🎲 Random seed: {seed} (set RANDOM_SEED = {seed} to reproduce this exact run)")
 
     targets = {}
+    unknown_labels = []
     for label, count in IMAGES_PER_LABEL.items():
         if label not in LABELS:
-            logger.warning(f"⚠ Skipping unknown label in IMAGES_PER_LABEL: {label}")
+            unknown_labels.append(label)
             continue
         if count > 0:
             targets[label] = count
 
     if not targets:
-        logger.warning("⚠ No labels with count > 0 in IMAGES_PER_LABEL. Nothing to generate.")
+        # Nothing configured to do — bail out before any logging/IO side effects.
+        for label in unknown_labels:
+            print(f"⚠ Skipping unknown label in IMAGES_PER_LABEL: {label}")
+        print("⚠ No labels with count > 0 in IMAGES_PER_LABEL. Nothing to generate.")
         return
+
+    output_path = Path(OUTPUT_DIR)
+    progress_path = output_path / PROGRESS_FILENAME
+    progress = load_progress(output_path, seed, targets)
+    total_requested = sum(targets.values())
+
+    if progress is not None:
+        completed_rounds = {label: set(rounds) for label, rounds in progress["completed_rounds"].items()}
+        already_done = sum(len(rounds) for rounds in completed_rounds.values())
+        if already_done >= total_requested:
+            # Fully completed in a previous run. Return before touching the filesystem at
+            # all (no log file, no output directories, no API client) so repeatedly calling
+            # generate_samples() on a finished plan is a true, side-effect-free no-op.
+            print(f"✅ This exact plan ({total_requested} images) was already fully completed in a previous "
+                  f"run. Nothing to do — see {progress_path}.")
+            return
+
+    # From here on there is real work to do, so it's fine to set up logging and the client.
+    logger = setup_logger(OUTPUT_DIR)
+    random.seed(seed)
+    logger.info(f"🎲 Random seed: {seed} (set RANDOM_SEED = {seed} to reproduce this exact run)")
+    for label in unknown_labels:
+        logger.warning(f"⚠ Skipping unknown label in IMAGES_PER_LABEL: {label}")
 
     setup_output_dir(targets.keys())
     client = genai.Client(api_key=GOOGLE_API_KEY)
 
-    output_path = Path(OUTPUT_DIR)
     metadata_path = output_path / "sample_metadata.json"
     if metadata_path.exists():
         with open(metadata_path) as f:
@@ -444,51 +498,76 @@ def generate_samples() -> None:
     else:
         metadata = []
 
-    total_requested = sum(targets.values())
+    label_dirs = {label: output_path / label for label in targets}
+
+    if progress is not None:
+        start_indices = progress["start_indices"]
+        logger.info("🔁 Resuming: saved checkpoint matches this seed and label/count plan.")
+    else:
+        if progress_path.exists():
+            logger.info("⚠ Saved checkpoint found but seed or label/count plan differs — starting a fresh plan "
+                        "(existing files are still safe; new images continue numbering after them).")
+        start_indices = {label: next_sample_index(label_dirs[label]) for label in targets}
+        completed_rounds = {label: set() for label in targets}
+        progress = {
+            "seed": seed,
+            "images_per_label": targets,
+            "start_indices": start_indices,
+            "completed_rounds": {label: [] for label in targets},
+        }
+        save_progress(output_path, progress)
+
+    already_done = sum(len(rounds) for rounds in completed_rounds.values())
     stats = {label: {"succeeded": 0, "failed": 0, "failures": []} for label in targets}
+    max_count = max(targets.values())
 
-    logger.info(f"\n🎬 Generating {total_requested} images across {len(targets)} label(s)...\n")
+    logger.info(f"\n🎬 Plan: {total_requested} images across {len(targets)} label(s), round-robin, "
+                f"{max_count} round(s), {MAX_WORKERS} worker thread(s). {already_done} already completed, "
+                f"{total_requested - already_done} remaining.\n")
 
-    for label, count in targets.items():
-        label_dir = output_path / label
-        start_index = next_sample_index(label_dir)
+    # Shared mutable state (metadata, stats, completed_rounds, progress, and their on-disk
+    # writes) is only ever touched by a worker thread while holding this lock. Variable
+    # resolution and the completed-slot skip check happen in the main thread below, outside
+    # any thread — so the RNG draw order stays strictly sequential regardless of how workers
+    # get scheduled or complete.
+    state_lock = threading.Lock()
 
-        for i in range(count):
-            sample_index = start_index + i
-            logger.info(f"📌 {label} [{i + 1}/{count}] -> sample_{sample_index:03d}")
+    def process_slot(label: str, round_num: int, count: int, sample_index: int, chosen: dict) -> None:
+        logger.info(f"📌 {label} [{round_num + 1}/{count}] -> sample_{sample_index:03d}  (round {round_num + 1}/{max_count})")
+        logger.info(f"   🎲 Variables: {chosen}")
 
-            chosen = resolve_variables(label)
-            prompt = build_prompt(label, chosen)
-            logger.info(f"   🎲 Variables: {chosen}")
+        prompt = build_prompt(label, chosen)
+        image_bytes, failure_reason = generate_image_with_retry(client, prompt, logger)
 
-            image_bytes, failure_reason = generate_image_with_retry(client, prompt, logger)
-
-            if image_bytes is None:
-                logger.error(f"   ✗ Failed to generate: {failure_reason}")
+        if image_bytes is None:
+            logger.error(f"   ✗ Failed to generate: {failure_reason}")
+            with state_lock:
                 stats[label]["failed"] += 1
                 stats[label]["failures"].append({
                     "sample": f"sample_{sample_index:03d}",
                     "reason": failure_reason,
                     "variables": chosen,
                 })
-                continue
+            return
 
-            image_path = label_dir / f"sample_{sample_index:03d}.png"
-            try:
-                with open(image_path, "wb") as f:
-                    f.write(image_bytes)
-                logger.info(f"   ✓ Saved to {image_path}")
-            except Exception as e:
-                reason = f"Save failed: {e}"
-                logger.error(f"   ✗ {reason}")
+        image_path = label_dirs[label] / f"sample_{sample_index:03d}.png"
+        try:
+            with open(image_path, "wb") as f:
+                f.write(image_bytes)
+            logger.info(f"   ✓ Saved to {image_path}")
+        except Exception as e:
+            reason = f"Save failed: {e}"
+            logger.error(f"   ✗ {reason}")
+            with state_lock:
                 stats[label]["failed"] += 1
                 stats[label]["failures"].append({
                     "sample": f"sample_{sample_index:03d}",
                     "reason": reason,
                     "variables": chosen,
                 })
-                continue
+            return
 
+        with state_lock:
             stats[label]["succeeded"] += 1
             metadata.append({
                 "file": str(image_path),
@@ -499,21 +578,55 @@ def generate_samples() -> None:
                 "model": GOOGLE_MODEL,
             })
 
-    with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=2)
+            # Written after every image (not just at the end) so metadata for
+            # already-generated images survives even if the run is stopped early.
+            with open(metadata_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+
+            # A slot only counts as completed once its image is actually saved, so a
+            # failed attempt is retried (with the same variables) on the next run.
+            completed_rounds[label].add(round_num)
+            progress["completed_rounds"][label] = sorted(completed_rounds[label])
+            save_progress(output_path, progress)
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = []
+        for round_num in range(max_count):
+            for label, count in targets.items():
+                if round_num >= count:
+                    continue
+
+                sample_index = start_indices[label] + round_num
+
+                # Always draw this slot's variables, even for a slot already completed in
+                # an earlier run, so the RNG sequence stays identical to an uninterrupted
+                # run — this must stay sequential in the main thread, never inside a worker.
+                chosen = resolve_variables(label)
+
+                if round_num in completed_rounds[label]:
+                    continue
+
+                futures.append(executor.submit(process_slot, label, round_num, count, sample_index, chosen))
+
+        for future in as_completed(futures):
+            future.result()  # re-raise anything unexpected (workers don't normally raise)
 
     total_succeeded = sum(s["succeeded"] for s in stats.values())
     total_failed = sum(s["failed"] for s in stats.values())
 
     logger.info("\n" + "=" * 70)
     logger.info("✅ Generation complete!")
-    logger.info(f"   Requested: {total_requested}   Succeeded: {total_succeeded}   Failed: {total_failed}")
+    logger.info(f"   Attempted this run: {total_succeeded + total_failed}   Succeeded: {total_succeeded}   Failed: {total_failed}")
     for label, s in stats.items():
         logger.info(f"   - {label}: {s['succeeded']} succeeded, {s['failed']} failed")
         for failure in s["failures"]:
             logger.info(f"       ✗ {failure['sample']}: {failure['reason']} (variables: {failure['variables']})")
     logger.info(f"   Output: {OUTPUT_DIR}/")
     logger.info(f"   Metadata: {metadata_path}")
+    logger.info(f"   Progress checkpoint: {progress_path}")
+    if total_failed:
+        logger.info(f"   {total_failed} image(s) failed and will be retried automatically on the next run "
+                     f"with the same seed/plan.")
     logger.info("=" * 70 + "\n")
 
 
