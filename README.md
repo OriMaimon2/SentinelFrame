@@ -1,3 +1,19 @@
+הקובץ המצורף SentinelFrame_Presentation_Final.pptx נוסף.לא נבחר אף פריט 
+
+דילוג לתוכן
+שימוש ב-Gmail עם קוראי מסך
+2 מתוך 10,329
+README
+דואר נכנס
+
+אורי מימון <orimaimon9@gmail.com‏>
+קבצים מצורפים
+13:59 (לפני 6 דקות)
+אני
+
+ קובץ מצורף אחד
+  •  נסרק על ידי Gmail
+yuvger03@gmail.com. אפשר להקיש על Tab כדי להשתמש בהצעה.
 # SentinelFrame – Frame-Level Hand State Recognition for Retail CCTV
 
 ## Project Overview
@@ -112,11 +128,15 @@ This list is defined once, in `generate_images.py`, and is the single source of 
 
 At least one hand is clearly inside a pants, jacket, or coat pocket.
 
+![hand_in_pocket example](Examples_Images/hand_in_pocket/sample_001.png)
+
 ---
 
 ### hand_in_bag
 
 At least one hand is inside a shopping bag, handbag, backpack, or other carried bag.
+
+![hand_in_bag example](Examples_Images/hand_in_bag/sample_001.png)
 
 ---
 
@@ -124,17 +144,23 @@ At least one hand is inside a shopping bag, handbag, backpack, or other carried 
 
 A hand is hidden underneath clothing, such as inside a jacket, hoodie, sweater, or shirt.
 
+![hand_under_clothing example](Examples_Images/hand_under_clothing/sample_001.png)
+
 ---
 
 ### object_in_hand
 
 The person is visibly holding a product or object.
 
+![object_in_hand example](Examples_Images/object_in_hand/sample_001.png)
+
 ---
 
 ### interacting_with_shelf
 
 The person is visibly reaching toward, touching, picking up, returning, or examining products on a supermarket shelf.
+
+![interacting_with_shelf example](Examples_Images/interacting_with_shelf/sample_001.png)
 
 ---
 
@@ -152,6 +178,8 @@ Examples include:
 
 This label intentionally represents **non-suspicious visibility loss**.
 
+![hand_occluded_generic example](Examples_Images/hand_occluded_generic/sample_014.png)
+
 ---
 
 ### both_hands_not_visible
@@ -160,11 +188,15 @@ Neither hand is visible in the current frame.
 
 This label is independent of the reason for the occlusion.
 
+![both_hands_not_visible example](Examples_Images/both_hands_not_visible/sample_001.png)
+
 ---
 
 ### no_visible_hand_interaction
 
 Ordinary, unremarkable behavior: both hands are visible and doing nothing notable (walking normally, pushing a cart, holding a phone, carrying a basket by its handle). This is the "nothing to see here" class, included so the classifier has an explicit negative case rather than only ever seeing frames where *something* is happening with the hands.
+
+![no_visible_hand_interaction example](Examples_Images/no_visible_hand_interaction/sample_001.png)
 
 ---
 
@@ -452,3 +484,4 @@ Future modules may include:
 * real-time deployment
 
 These components are intentionally separated from the classifier so that the classifier remains responsible only for estimating observable visual states.
+README.md
