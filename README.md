@@ -1,21 +1,3 @@
-הקובץ המצורף SentinelFrame_Presentation_Final.pptx נוסף.לא נבחר אף פריט 
-
-דילוג לתוכן
-שימוש ב-Gmail עם קוראי מסך
-2 מתוך 10,329
-README
-דואר נכנס
-
-אורי מימון <orimaimon9@gmail.com‏>
-קבצים מצורפים
-13:59 (לפני 6 דקות)
-אני
-
- קובץ מצורף אחד
-  •  נסרק על ידי Gmail
-yuvger03@gmail.com. אפשר להקיש על Tab כדי להשתמש בהצעה.
-# SentinelFrame – Frame-Level Hand State Recognition for Retail CCTV
-
 ## Project Overview
 
 SentinelFrame is a computer vision system for analyzing individual people detected in supermarket CCTV footage.
